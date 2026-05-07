@@ -1,27 +1,16 @@
-# OnkoTaxi MVP 2.3 Pixel Perfect Pass
+# OnkoTaxi MVP 2.3.2 Fix
 
-Wersja przygotowana jako premium PWA, z poprawionym UI/mobile feel względem zatwierdzonych ekranów.
+Poprawki:
+- aktywny dzwoneczek powiadomień pacjenta,
+- panel admin w języku polskim,
+- rozszerzone zakładki admina zgodnie z zaakceptowanymi makietami,
+- funkcjonalne dodawanie reklam: obraz z dysku, format, miejsce emisji, link, priorytet, czas emisji,
+- podgląd dokumentów pacjenta w adminie,
+- przyciski kierowcy: Zadzwoń, Nawiguj, Przyjmij/Potwierdź,
+- zachowane dotychczasowe flow pacjenta i kierowcy.
 
-## Co poprawiono
-- ekran startowy pacjenta: hero reklama + CTA + spacing zgodnie z zaakceptowanym kierunkiem,
-- bottom navigation: bardziej native mobile, subtelny active state, safe-area,
-- reklamy: większa ekspozycja i premium layout,
-- formularze i karty: dopracowane radiusy, spacing, cienie, typografia,
-- planowanie podróży: lepszy układ kroków i walidacja dokumentów,
-- SOS: mocniejszy ekran alarmowy i bezpieczne potwierdzenie,
-- panel admin: bardziej spójne KPI, tabele i karty,
-- PWA manifest.
+Konto admin:
+admin@onkotaxi.pl / Admin123!
 
-## Dane testowe
-Super admin: admin@onkotaxi.pl / Admin123!
-Kierowca: piotr.nowak@onkotaxi.pl / Driver123!
-
-## Uruchomienie
-```bash
-npm install
-npm run dev
-```
-
-## Deploy Vercel
-Build command: npm run build
-Output: dist
+Konto kierowcy:
+piotr.nowak@onkotaxi.pl / Driver123!
