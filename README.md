@@ -21,7 +21,7 @@ Build:
 npm run build
 ```
 
-## MVP 2.3.12 — precyzyjne podpowiedzi adresów
+## MVP 2.3.13 — precyzyjne podpowiedzi adresów
 - Podpowiedzi adresów uruchamiają się od 4 znaków.
 - Pacjent widzi instrukcję: wpisz miasto, ulicę i numer.
 - Wyniki są filtrowane tak, aby nie pokazywać ogólnych fragmentów miasta.
