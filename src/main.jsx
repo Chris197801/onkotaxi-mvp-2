@@ -21,6 +21,11 @@ const ADDRESS_INDEX=[
   {street:'Kocjana',number:'23/19',city:'Mielec'},
   {street:'Racławicka',number:'1C',city:'Mielec'},
   {street:'Dębicka',number:'4',city:'Mielec'},
+  {street:'Henryka Sienkiewicza',number:'40',city:'Mielec'},
+  {street:'Henryka Sienkiewicza',number:'40',city:'Przecław'},
+  {street:'Henryka Sienkiewicza',number:'40',city:'Staszów'},
+  {street:'Henryka Sienkiewicza',number:'40',city:'Łódź'},
+  {street:'Henryka Sienkiewicza',number:'40',city:'Kielce'},
   {street:'Wyspiańskiego',number:'21',city:'Rzeszów'},
   {street:'Warszawska',number:'15',city:'Rzeszów'},
   {street:'Szpitalna',number:'1',city:'Rzeszów'},
@@ -33,11 +38,49 @@ function parseAddressComponents(components=[]){const get=t=>(components.find(c=>
 function formatPredictionText(pred){const terms=(pred.terms||[]).map(t=>t.value).filter(Boolean);const desc=pred.description||'';let city=terms.find(t=>/^[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż -]+$/.test(t)&&!/^Polska$/i.test(t)&&!/powiat|wojew/i.test(t));let street='';let number='';const first=terms[0]||'';const second=terms[1]||'';if(/^\d+[a-zA-Z]?([/-]\d+)?$/i.test(first)){number=first;street=second}else{const m=first.match(/^(.+?)\s+(\d+[a-zA-Z]?([/-]\d+)?)$/);if(m){street=m[1];number=m[2]}else street=first}
 if(!city){const m=desc.match(/,\s*([^,]+),\s*(Polska|PL)/i);city=m?.[1]||''}
 if(street&&city&&!/Polska|powiat|wojew|gmina/i.test(street))return simpleAddress({street,number,city});return null}
-function scoreStructured(addr,txt){const q=cleanTokens(txt);const all=normText(`${addr.street} ${addr.number} ${addr.city}`);let score=0;for(const t of q){if(all.includes(t))score+=10;if(normText(addr.street).startsWith(t))score+=6;if(normText(addr.city).startsWith(t))score+=5;if(normText(addr.number).startsWith(t))score+=8}const typedNum=q.find(t=>/\d/.test(t));if(typedNum&&normText(addr.number).startsWith(typedNum))score+=20;else if(typedNum&&addr.number&&!normText(addr.number).startsWith(typedNum))score-=50;return score}
-function preciseLocalSuggestions(txt){const q=cleanTokens(txt);if(q.join('').length<4)return[];const scored=ADDRESS_INDEX.map(a=>({a,score:scoreStructured(a,txt)})).filter(x=>x.score>=(/\d/.test(txt)?25:10)).sort((x,y)=>y.score-x.score||simpleAddress(x.a).length-simpleAddress(y.a).length).map(x=>simpleAddress(x.a));return [...new Set(scored)].slice(0,6)}
+
+function tokenMatchesField(field,t){const f=normText(field);return f.split(' ').some(part=>part.startsWith(t))||f.includes(t)}
+function scoreStructured(addr,txt){
+  const q=cleanTokens(txt);
+  if(q.join('').length<4)return -999;
+  const street=normText(addr.street), city=normText(addr.city), num=normText(addr.number);
+  let score=0;
+  const typedNum=q.find(t=>/\d/.test(t));
+  const textHasCity=q.some(t=>city.startsWith(t)||t.startsWith(city));
+  const textHasStreet=q.some(t=>tokenMatchesField(addr.street,t));
+  for(const t of q){
+    if(tokenMatchesField(addr.street,t))score+=18;
+    if(city.startsWith(t)||t.startsWith(city))score+=20;
+    if(num&&num.startsWith(t))score+=30;
+    if(street.includes(t))score+=8;
+    if(city.includes(t))score+=8;
+  }
+  if(typedNum){
+    if(num.startsWith(typedNum))score+=40;
+    else score-=120;
+  }
+  if(textHasCity)score+=20;
+  if(textHasStreet)score+=20;
+  if(q.length>=2 && !textHasStreet && !textHasCity)score-=50;
+  return score;
+}
+function preciseLocalSuggestions(txt){
+  const q=cleanTokens(txt);
+  if(q.join('').length<4)return[];
+  const scored=ADDRESS_INDEX.map(a=>({a,score:scoreStructured(a,txt)}))
+    .filter(x=>x.score>=(/\d/.test(txt)?45:24))
+    .sort((x,y)=>y.score-x.score||simpleAddress(x.a).length-simpleAddress(y.a).length);
+  let out=[...new Set(scored.map(x=>simpleAddress(x.a)))];
+  // Gdy użytkownik podał miasto i numer, pokazuj tylko najbardziej konkretne dopasowania.
+  const hasNum=/\d/.test(txt);
+  const hasCity=ADDRESS_INDEX.some(a=>q.some(t=>normText(a.city).startsWith(t)||t.startsWith(normText(a.city))));
+  if(hasNum&&hasCity)out=out.slice(0,3);
+  else out=out.slice(0,6);
+  return out;
+}
 async function googlePlaceDetails(preds,txt){const places=window.google?.maps?.places;if(!places||!preds?.length)return[];const div=document.createElement('div');const svc=new places.PlacesService(div);const getDetails=p=>new Promise(resolve=>{svc.getDetails({placeId:p.place_id,fields:['address_components']},(place,status)=>{const label=parseAddressComponents(place?.address_components||[])||formatPredictionText(p);resolve(label)})});const labels=await Promise.all(preds.slice(0,6).map(getDetails));return [...new Set(labels.filter(Boolean))].map(a=>({a,score:scoreLabel(a,txt)})).filter(x=>x.score>0).sort((x,y)=>y.score-x.score||x.a.length-y.a.length).map(x=>x.a).slice(0,5)}
 function scoreLabel(label,txt){const q=cleanTokens(txt);const hay=normText(label);let score=0;for(const t of q){if(hay.includes(t))score+=8;if(hay.startsWith(t))score+=4}const num=q.find(t=>/\d/.test(t));if(num){const m=hay.match(/\b\d+[a-z]?(?:[/-]\d+)?\b/);if(m&&m[0].startsWith(num))score+=25;else if(m)score-=20}return score}
-function AddressInput({label,value,onChange,onPick,placeholder}){const[q,setQ]=useState(value||''),[items,setItems]=useState([]),[open,setOpen]=useState(false),[loading,setLoading]=useState(false);useEffect(()=>{ensureGooglePlaces()},[]);useEffect(()=>{setQ(value||'')},[value]);async function search(v){const txt=(v||'').trim();setQ(v);onChange(v);if(txt.length<4){setItems([]);setOpen(false);setLoading(false);return}setOpen(true);setLoading(true);const svc=window.google?.maps?.places?.AutocompleteService;if(svc){svc.getPlacePredictions({input:txt,componentRestrictions:{country:'pl'},types:['address'],language:'pl'},async(res,status)=>{let out=await googlePlaceDetails(res||[],txt);if(!out.length)out=preciseLocalSuggestions(txt);setItems(out);setLoading(false)});return}try{const local=preciseLocalSuggestions(txt);const resp=await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=pl&q=${encodeURIComponent(txt)}`,{headers:{'Accept':'application/json'}});const data=await resp.json();const remote=(data||[]).map(x=>{const a=x.address||{};const street=a.road||a.pedestrian||a.residential||a.footway;const number=a.house_number||'';const city=a.city||a.town||a.village||a.municipality;if(!street||!city)return null;return simpleAddress({street,number,city})}).filter(Boolean);let merged=[...new Set([...local,...remote])];merged=merged.map(a=>({a,score:scoreLabel(a,txt)})).filter(x=>x.score>0).sort((x,y)=>y.score-x.score||x.a.length-y.a.length).map(x=>x.a).slice(0,5);setItems(merged)}catch{setItems(preciseLocalSuggestions(txt))}finally{setLoading(false)}}function choose(a){setQ(a);onChange(a);setOpen(false);setItems([]);onPick&&onPick(a)}return <div className="addrbox google-ready"><Field label={label} value={q} onChange={search} placeholder={placeholder||"Wpisz miasto, ulicę i numer, np. Mielec Racławicka 1C"}/>{open&&<div className="suggestions google-pop">{loading&&<div className="suggestion-note">Szukam adresu...</div>}{!loading&&items.length===0&&<div className="suggestion-note">Wpisz miasto, ulicę i numer budynku.</div>}{items.map(a=><button type="button" key={a} onClick={()=>choose(a)}><MapPin size={16}/><span>{a}</span></button>)}</div>}</div>}
+function AddressInput({label,value,onChange,onPick,placeholder}){const[q,setQ]=useState(value||''),[items,setItems]=useState([]),[open,setOpen]=useState(false),[loading,setLoading]=useState(false);useEffect(()=>{ensureGooglePlaces()},[]);useEffect(()=>{setQ(value||'')},[value]);async function search(v){const txt=(v||'').trim();setQ(v);onChange(v);if(txt.length<4){setItems([]);setOpen(false);setLoading(false);return}setOpen(true);setLoading(true);const svc=window.google?.maps?.places?.AutocompleteService;if(svc){svc.getPlacePredictions({input:txt,componentRestrictions:{country:'pl'},types:['address'],language:'pl'},async(res,status)=>{let out=await googlePlaceDetails(res||[],txt);if(!out.length)out=preciseLocalSuggestions(txt);setItems(out);setLoading(false)});return}try{const local=preciseLocalSuggestions(txt);const resp=await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=pl&q=${encodeURIComponent(txt)}`,{headers:{'Accept':'application/json'}});const data=await resp.json();const remote=(data||[]).map(x=>{const a=x.address||{};const street=a.road||a.pedestrian||a.residential||a.footway;const number=a.house_number||'';const city=a.city||a.town||a.village||a.municipality;if(!street||!city)return null;return simpleAddress({street,number,city})}).filter(Boolean);let merged=[...new Set([...local,...remote])];merged=merged.map(a=>({a,score:scoreLabel(a,txt)})).filter(x=>x.score>0).sort((x,y)=>y.score-x.score||x.a.length-y.a.length).map(x=>x.a).slice(0,5);setItems(merged)}catch{setItems(preciseLocalSuggestions(txt))}finally{setLoading(false)}}function choose(a){setQ(a);onChange(a);setOpen(false);setItems([]);onPick&&onPick(a)}return <div className="addrbox google-ready"><Field label={label} value={q} onChange={search} placeholder={placeholder||"Miasto, ulica i numer, np. Mielec Sienkiewicza 40"}/>{open&&<div className="suggestions google-pop">{loading&&<div className="suggestion-note">Szukam adresu...</div>}{!loading&&items.length===0&&<div className="suggestion-note">Wpisz np. „Mielec Sienkiewicza 40” albo „Sienkiewicza 40 Mielec”.</div>}{items.map(a=><button type="button" key={a} onClick={()=>choose(a)}><MapPin size={16}/><span>{a}</span></button>)}</div>}</div>}
 
 function Field({label,value,onChange,placeholder,type='text'}){return <label className="field"><span>{label}</span><input type={type} value={value||''} placeholder={placeholder||''} onChange={e=>onChange&&onChange(e.target.value)}/></label>}
 function ScreenTitle({title,sub,back}){return <div className="screen-title">{back&&<button className="plain back" onClick={back}><ArrowLeft/></button>}<div><h1>{title}</h1>{sub&&<small>{sub}</small>}</div></div>}
