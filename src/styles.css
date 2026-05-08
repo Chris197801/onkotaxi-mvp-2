@@ -208,3 +208,13 @@
   .phone-content .ad:not(.ad-low) button{font-size:14px!important;padding:14px 22px!important;border-radius:12px!important;}
   .phone-shell .primary,.phone-shell .outline{min-height:78px;border-radius:16px;font-size:24px;}
 }
+
+/* MVP 2.3.17 real burger menu fix */
+.burger-panel{position:absolute;inset:0;z-index:60;background:#fff;display:flex;flex-direction:column;border-radius:inherit;overflow:hidden;}
+.burger-head{height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #e3f0f0;}
+.burger-list{padding:22px;display:flex;flex-direction:column;gap:12px;overflow:auto;}
+.burger-list button{width:100%;min-height:60px;border:1px solid #d4eceb;background:#fff;border-radius:16px;display:grid;grid-template-columns:28px 1fr 22px;align-items:center;gap:14px;padding:0 16px;color:#063047;font-weight:950;text-align:left;}
+.burger-list button.active{background:#eefafa;border-color:#009b92;color:#009b92;}
+.burger-list button svg{width:22px;height:22px;}
+.phone-shell{position:relative;}
+@media(max-width:520px){.burger-panel{border-radius:0}.burger-head{height:88px;flex-basis:88px}.burger-list button{min-height:66px;font-size:18px}}
