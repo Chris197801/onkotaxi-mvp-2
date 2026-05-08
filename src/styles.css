@@ -218,3 +218,8 @@
 .burger-list button svg{width:22px;height:22px;}
 .phone-shell{position:relative;}
 @media(max-width:520px){.burger-panel{border-radius:0}.burger-head{height:88px;flex-basis:88px}.burger-list button{min-height:66px;font-size:18px}}
+/* MVP 2.3.20 — mobile panel switcher in burger menu */
+.burger-sep{font-size:12px;font-weight:950;color:#607486;text-transform:uppercase;letter-spacing:.08em;margin:16px 8px 8px;}
+.burger-list button.active{background:#e6f7f5;border-color:#8fd6cf;color:#006c69;}
+@media(max-width:980px){.desktop-nav{display:none!important}}
+@media(min-width:981px){.burger-list button:first-child{display:none}}
