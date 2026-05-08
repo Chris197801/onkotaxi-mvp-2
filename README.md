@@ -20,3 +20,10 @@ Build:
 ```bash
 npm run build
 ```
+
+## MVP 2.3.12 — precyzyjne podpowiedzi adresów
+- Podpowiedzi adresów uruchamiają się od 4 znaków.
+- Pacjent widzi instrukcję: wpisz miasto, ulicę i numer.
+- Wyniki są filtrowane tak, aby nie pokazywać ogólnych fragmentów miasta.
+- Google Places działa po ustawieniu VITE_GOOGLE_MAPS_API_KEY.
+- Bez klucza działa precyzyjniejszy fallback dla testów.
